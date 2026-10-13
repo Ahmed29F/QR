@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولد رمز QR</title>
+    
+    <!-- مكتبة Tailwind CSS للتصميم -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- مكتبة qrcode.js لتوليد الرمز -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- إعداد خط متناسق للعربية -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        /* لضمان توسيط الرمز داخل الحاوية */
+        #qr-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        #qr-container img, #qr-container canvas {
+            margin: 0 auto;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 sm:p-8 transition-all duration-300">
+        
+        <!-- الترويسة -->
+        <div class="text-center mb-6">
+            <div class="inline-block bg-blue-100 p-3 rounded-full mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">مولد رموز QR</h1>
+            <p class="text-gray-500 text-sm mt-1">قم بتحويل أي رابط إلى رمز استجابة سريعة بسهولة</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label for="url-input" class="block text-sm font-medium text-gray-700 mb-1">الرابط أو النص</label>
+                <input type="text" id="url-input" placeholder="https://example.com" 
+                       class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors text-left" dir="ltr">
+                <!-- رسالة الخطأ (مخفية افتراضياً) -->
+                <p id="error-message" class="text-red-500 text-xs mt-1 hidden">الرجاء إدخال رابط أو نص صحيح.</p>
+            </div>
+
+            <button id="generate-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 shadow-md flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                توليد الرمز
+            </button>
+        </div>
+
+        <!-- حاوية الرمز -->
+        <div id="qr-result-area" class="mt-8 hidden opacity-0 transition-opacity duration-500">
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col items-center">
+                <div id="qr-container" class="bg-white p-2 rounded-lg shadow-sm border border-gray-100">
+                    <!-- سيتم حقن الـ QR هنا -->
+                </div>
+                
+                <button id="download-btn" class="mt-5 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 shadow flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    تحميل الصورة
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('url-input');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const qrContainer = document.getElementById('qr-container');
+            const qrResultArea = document.getElementById('qr-result-area');
+            const errorMessage = document.getElementById('error-message');
+
+            let qrCode = null;
+
+            // دالة التوليد
+            generateBtn.addEventListener('click', () => {
+                const text = urlInput.value.trim();
+                
+                // إخفاء الخطأ وتصفير منطقة العرض
+                errorMessage.classList.add('hidden');
+                qrResultArea.classList.remove('opacity-100');
+                qrResultArea.classList.add('hidden');
+                
+                // التحقق من الإدخال
+                if (!text) {
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                // مسح الـ QR القديم إن وجد
+                qrContainer.innerHTML = '';
+
+                // إنشاء الرمز الجديد
+                qrCode = new QRCode(qrContainer, {
+                    text: text,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H // مستوى عالي لتصحيح الأخطاء
+                });
+
+                // إظهار منطقة النتيجة بنعومة
+                qrResultArea.classList.remove('hidden');
+                // نستخدم setTimeout صغير للسماح للمتصفح برسم العنصر قبل تغيير الشفافية (تأثير حركي)
+                setTimeout(() => {
+                    qrResultArea.classList.add('opacity-100');
+                }, 50);
+            });
+
+            // السماح بالتوليد عند الضغط على Enter
+            urlInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    generateBtn.click();
+                }
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                // مكتبة qrcode.js تنشئ <canvas> و <img>
+                // سنحاول الحصول على <img> أولاً لأنه يعتمد عليه على الهواتف غالباً
+                let imgElement = qrContainer.querySelector('img');
+                let canvasElement = qrContainer.querySelector('canvas');
+                let imageUrl = '';
+
+                // استخراج الرابط النصي للصورة
+                if (imgElement && imgElement.src && imgElement.src.startsWith('data:image')) {
+                    imageUrl = imgElement.src;
+                } else if (canvasElement) {
+                    // كخيار بديل إذا لم يتوفر وسم الصورة لسبب ما
+                    imageUrl = canvasElement.toDataURL("image/png");
+                }
+
+                if (imageUrl) {
+                    // إنشاء وسم a وهمي لتفعيل عملية التحميل
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = imageUrl;
+                    downloadLink.download = 'qr-code.png'; // اسم الملف الافتراضي
+                    
+                    // إضافته للمستند مؤقتاً لضمان عمله على بعض المتصفحات (مثل فايرفوكس وسفاري)
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    
+                    // إزالته بعد التحميل
+                    document.body.removeChild(downloadLink);
+                } else {
+                    // رسالة بديلة في حال فشل استخراج الصورة
+                    const tempMsg = document.createElement('div');
+                    tempMsg.textContent = 'حدث خطأ أثناء محاولة تحميل الصورة.';
+                    tempMsg.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded shadow z-50';
+                    document.body.appendChild(tempMsg);
+                    setTimeout(() => document.body.removeChild(tempMsg), 3000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
